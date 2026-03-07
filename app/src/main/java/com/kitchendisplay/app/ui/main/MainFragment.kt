@@ -120,7 +120,7 @@ class MainFragment : Fragment() {
                         .addToBackStack(null)
                         .commit()
                     (activity as? com.kitchendisplay.app.MainActivity)
-                        ?.binding?.bottomNav?.selectedItemId =
+                    ?.binding?.navRail?.selectedItemId =
                         com.kitchendisplay.app.R.id.nav_messages
                 }
             }

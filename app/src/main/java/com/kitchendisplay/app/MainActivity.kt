@@ -21,7 +21,6 @@ import com.kitchendisplay.app.ui.messages.MessagesFragment
 import com.kitchendisplay.app.ui.notes.NotesFragment
 import com.kitchendisplay.app.ui.settings.SettingsFragment
 import com.kitchendisplay.app.ui.weather.WeatherFragment
-import com.kitchendisplay.app.ui.youtube.YoutubeFragment
 
 /**
  * Single activity host.
@@ -68,8 +67,8 @@ class MainActivity : AppCompatActivity() {
         // ── Kiosk / lock-task mode ─────────────────────────────────────────
         engageLockTask()
 
-        // ── Bottom navigation ──────────────────────────────────────────────
-        binding.bottomNav.setOnItemSelectedListener { item ->
+        // ── Side navigation rail ───────────────────────────────────────────
+        binding.navRail.setOnItemSelectedListener { item ->
             when (item.itemId) {
                 R.id.nav_home -> showFragment(MainFragment(), "home")
                 R.id.nav_messages -> showFragment(MessagesFragment(), "messages")
@@ -128,7 +127,7 @@ class MainActivity : AppCompatActivity() {
 
     fun showMain() {
         showFragment(MainFragment(), "home")
-        binding.bottomNav.selectedItemId = R.id.nav_home
+        binding.navRail.selectedItemId = R.id.nav_home
     }
 
     private fun showFragment(fragment: Fragment, tag: String) {
