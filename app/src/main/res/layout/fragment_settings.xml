@@ -11,7 +11,71 @@
         android:orientation="vertical"
         android:padding="16dp">
 
-        <!-- Section: Contacts / Shortcuts -->
+        <!-- ── Section: Nextcloud Talk ── -->
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="@string/section_nextcloud"
+            android:textColor="@color/accent"
+            android:textSize="18sp"
+            android:textStyle="bold"
+            android:paddingBottom="8dp" />
+
+        <EditText
+            android:id="@+id/et_nc_server_url"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:hint="@string/nc_server_url_hint"
+            android:textColor="@color/text_primary"
+            android:textColorHint="@color/text_secondary"
+            android:background="@color/input_background"
+            android:padding="12dp"
+            android:textSize="16sp"
+            android:inputType="textUri"
+            android:singleLine="true"
+            android:layout_marginBottom="8dp" />
+
+        <EditText
+            android:id="@+id/et_nc_username"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:hint="@string/nc_username_hint"
+            android:textColor="@color/text_primary"
+            android:textColorHint="@color/text_secondary"
+            android:background="@color/input_background"
+            android:padding="12dp"
+            android:textSize="16sp"
+            android:inputType="textNoSuggestions"
+            android:singleLine="true"
+            android:layout_marginBottom="8dp" />
+
+        <EditText
+            android:id="@+id/et_nc_password"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:hint="@string/nc_password_hint"
+            android:textColor="@color/text_primary"
+            android:textColorHint="@color/text_secondary"
+            android:background="@color/input_background"
+            android:padding="12dp"
+            android:textSize="16sp"
+            android:inputType="textPassword"
+            android:singleLine="true"
+            android:layout_marginBottom="8dp" />
+
+        <Button
+            android:id="@+id/btn_save_nc_credentials"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/save_nc_credentials" />
+
+        <View
+            android:layout_width="match_parent"
+            android:layout_height="1dp"
+            android:background="@color/divider"
+            android:layout_marginVertical="16dp" />
+
+        <!-- ── Section: Contacts / Shortcuts ── -->
         <TextView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
@@ -40,7 +104,7 @@
             android:background="@color/divider"
             android:layout_marginVertical="16dp" />
 
-        <!-- Section: Weather -->
+        <!-- ── Section: Weather ── -->
         <TextView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
@@ -106,7 +170,7 @@
             android:background="@color/divider"
             android:layout_marginVertical="16dp" />
 
-        <!-- Section: Messages -->
+        <!-- ── Section: Messages ── -->
         <TextView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
@@ -130,7 +194,7 @@
             android:background="@color/divider"
             android:layout_marginVertical="16dp" />
 
-        <!-- Section: Display -->
+        <!-- ── Section: Display ── -->
         <TextView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
@@ -188,7 +252,7 @@
             android:background="@color/divider"
             android:layout_marginVertical="16dp" />
 
-        <!-- Section: Security / Kiosk -->
+        <!-- ── Section: Security / Kiosk ── -->
         <TextView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
@@ -197,13 +261,6 @@
             android:textSize="18sp"
             android:textStyle="bold"
             android:paddingBottom="8dp" />
-
-        <Button
-            android:id="@+id/btn_notification_access"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="@string/grant_notification_access"
-            android:layout_marginBottom="8dp" />
 
         <Button
             android:id="@+id/btn_change_pin"

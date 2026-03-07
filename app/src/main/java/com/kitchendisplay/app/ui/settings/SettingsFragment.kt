@@ -7,25 +7,25 @@ import android.view.ViewGroup
 import android.widget.Toast
 import androidx.appcompat.app.AlertDialog
 import androidx.fragment.app.Fragment
-import com.kitchendisplay.app.MainActivity
 import com.kitchendisplay.app.R
 import com.kitchendisplay.app.data.MessageRepository
 import com.kitchendisplay.app.data.SettingsRepository
 import com.kitchendisplay.app.databinding.FragmentSettingsBinding
 import com.kitchendisplay.app.models.Contact
+import com.kitchendisplay.app.services.NextcloudPollService
 import java.util.UUID
 
 /**
  * Settings screen.
  *
  * Features:
- *  - Add / remove Signal contact shortcuts shown on the main screen.
- *  - Weather location (city name).
- *  - Temperature unit (°C / °F).
+ *  - Nextcloud account credentials (server URL, username, app password).
+ *  - Add / remove Nextcloud Talk contact shortcuts shown on the main screen.
+ *  - Weather location (city name) and temperature unit.
  *  - Toggle TTS readout of incoming messages.
+ *  - Idle timeout configuration.
  *  - Change / clear the settings PIN.
  *  - Exit kiosk mode (requires correct PIN if one is set).
- *  - Grant Notification Access shortcut.
  */
 class SettingsFragment : Fragment() {
 
@@ -61,6 +61,12 @@ class SettingsFragment : Fragment() {
     // ── Load current values ───────────────────────────────────────────────
 
     private fun loadCurrentSettings() {
+        // Nextcloud account
+        binding.etNcServerUrl.setText(settings.nextcloudServerUrl)
+        binding.etNcUsername.setText(settings.nextcloudUsername)
+        // Password field intentionally left blank (do not pre-fill for security)
+
+        // Weather
         binding.etWeatherLocation.setText(settings.weatherLocation)
         binding.switchReadAloud.isChecked = settings.readMessagesAloud
         binding.rgTempUnit.check(
@@ -72,12 +78,32 @@ class SettingsFragment : Fragment() {
     // ── Listeners ─────────────────────────────────────────────────────────
 
     private fun setupListeners() {
+        // Save Nextcloud credentials & restart poll service
+        binding.btnSaveNcCredentials.setOnClickListener {
+            val url = binding.etNcServerUrl.text.toString().trim()
+            val user = binding.etNcUsername.text.toString().trim()
+            val pass = binding.etNcPassword.text.toString()
+            if (url.isEmpty() || user.isEmpty() || pass.isEmpty()) {
+                Toast.makeText(requireContext(), R.string.nc_credentials_incomplete, Toast.LENGTH_SHORT).show()
+                return@setOnClickListener
+            }
+            settings.nextcloudServerUrl = url
+            settings.nextcloudUsername = user
+            settings.nextcloudPassword = pass
+            // Restart the poll service so it picks up the new credentials
+            NextcloudPollService.stop(requireContext())
+            NextcloudPollService.start(requireContext())
+            // Clear cached room tokens so they are re-resolved against the new server
+            messageRepo.saveContacts(messageRepo.getContacts().map { it.copy(cachedRoomToken = "") })
+            Toast.makeText(requireContext(), R.string.saved, Toast.LENGTH_SHORT).show()
+        }
+
         // Save weather location
         binding.btnSaveLocation.setOnClickListener {
             val loc = binding.etWeatherLocation.text.toString().trim()
             if (loc.isEmpty()) return@setOnClickListener
             settings.weatherLocation = loc
-            settings.weatherLocationResolved = false  // trigger re-geocode
+            settings.weatherLocationResolved = false
             Toast.makeText(requireContext(), R.string.saved, Toast.LENGTH_SHORT).show()
         }
 
@@ -96,15 +122,6 @@ class SettingsFragment : Fragment() {
             val secs = binding.etIdleTimeout.text.toString().toIntOrNull() ?: 20
             settings.idleTimeoutSeconds = secs.coerceIn(5, 3600)
             Toast.makeText(requireContext(), R.string.saved, Toast.LENGTH_SHORT).show()
-        }
-
-        // Notification access shortcut
-        binding.btnNotificationAccess.setOnClickListener {
-            startActivity(
-                android.content.Intent(
-                    android.provider.Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS
-                )
-            )
         }
 
         // Change PIN
@@ -126,7 +143,7 @@ class SettingsFragment : Fragment() {
             val row = LayoutInflater.from(requireContext())
                 .inflate(R.layout.item_contact_row, binding.llContacts, false)
             row.findViewById<android.widget.TextView>(R.id.tv_contact_name).text =
-                "${contact.displayName}  (${contact.phoneNumber})"
+                "${contact.displayName}  (@${contact.nextcloudUserId})"
             row.findViewById<android.widget.ImageButton>(R.id.btn_delete_contact)
                 .setOnClickListener {
                     messageRepo.removeContact(contact.id)
@@ -145,17 +162,20 @@ class SettingsFragment : Fragment() {
             .setPositiveButton(R.string.add) { _, _ ->
                 val name = view.findViewById<android.widget.EditText>(R.id.et_contact_name)
                     .text.toString().trim()
-                val phone = view.findViewById<android.widget.EditText>(R.id.et_contact_phone)
+                val userId = view.findViewById<android.widget.EditText>(R.id.et_contact_nc_user)
                     .text.toString().trim()
-                if (name.isNotEmpty() && phone.isNotEmpty()) {
+                if (name.isNotEmpty() && userId.isNotEmpty()) {
                     messageRepo.addContact(
                         Contact(
                             id = UUID.randomUUID().toString(),
                             displayName = name,
-                            phoneNumber = phone
+                            nextcloudUserId = userId
                         )
                     )
                     refreshContactList()
+                    // Restart poll service so it picks up the new contact
+                    NextcloudPollService.stop(requireContext())
+                    NextcloudPollService.start(requireContext())
                 }
             }
             .setNegativeButton(android.R.string.cancel, null)
@@ -213,11 +233,11 @@ class SettingsFragment : Fragment() {
     }
 
     private fun performExitKiosk() {
+        NextcloudPollService.stop(requireContext())
         try {
             activity?.stopLockTask()
         } catch (_: Exception) {
         }
-        // Launch normal home screen
         startActivity(
             android.content.Intent(android.content.Intent.ACTION_MAIN).apply {
                 addCategory(android.content.Intent.CATEGORY_HOME)

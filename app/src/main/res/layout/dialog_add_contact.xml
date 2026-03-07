@@ -27,20 +27,20 @@
     <TextView
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="@string/contact_phone_label"
+        android:text="@string/contact_nc_user_label"
         android:textColor="@color/text_primary"
         android:textSize="14sp"
         android:paddingTop="12dp"
         android:paddingBottom="4dp" />
 
     <EditText
-        android:id="@+id/et_contact_phone"
+        android:id="@+id/et_contact_nc_user"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:hint="@string/contact_phone_hint"
+        android:hint="@string/contact_nc_user_hint"
         android:textColor="@color/text_primary"
         android:textSize="16sp"
-        android:inputType="phone"
+        android:inputType="textNoSuggestions"
         android:singleLine="true" />
 
 </LinearLayout>

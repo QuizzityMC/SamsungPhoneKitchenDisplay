@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
-    <!-- Network for weather and YouTube -->
+    <!-- Network for weather, YouTube and Nextcloud Talk -->
     <uses-permission android:name="android.permission.INTERNET" />
     <!-- Keep screen on -->
     <uses-permission android:name="android.permission.WAKE_LOCK" />
@@ -13,10 +13,9 @@
     <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
     <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE"
         android:maxSdkVersion="28" />
-    <!-- Notification listener (declared in service, but good practice) -->
-    <uses-permission android:name="android.permission.BIND_NOTIFICATION_LISTENER_SERVICE" />
-    <!-- Foreground service for kiosk -->
+    <!-- Foreground service for Nextcloud Talk polling -->
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_DATA_SYNC" />
     <!-- System alert window for overlay (optional enhanced kiosk) -->
     <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />
     <!-- Device admin for full lock-task / kiosk support -->
@@ -66,16 +65,11 @@
             </intent-filter>
         </receiver>
 
-        <!-- Notification listener: intercepts Signal notifications for in-app messages -->
+        <!-- Nextcloud Talk poll service: long-polls DM rooms for new messages -->
         <service
-            android:name=".services.SignalNotificationListener"
-            android:exported="true"
-            android:label="@string/notification_listener_label"
-            android:permission="android.permission.BIND_NOTIFICATION_LISTENER_SERVICE">
-            <intent-filter>
-                <action android:name="android.service.notification.NotificationListenerService" />
-            </intent-filter>
-        </service>
+            android:name=".services.NextcloudPollService"
+            android:exported="false"
+            android:foregroundServiceType="dataSync" />
 
         <!-- Device admin receiver for full kiosk / lock-task support -->
         <receiver
@@ -89,17 +83,6 @@
                 <action android:name="android.app.action.DEVICE_ADMIN_ENABLED" />
             </intent-filter>
         </receiver>
-
-        <!-- FileProvider for sharing voice message audio files with Signal -->
-        <provider
-            android:name="androidx.core.content.FileProvider"
-            android:authorities="${applicationId}.fileprovider"
-            android:exported="false"
-            android:grantUriPermissions="true">
-            <meta-data
-                android:name="android.support.FILE_PROVIDER_PATHS"
-                android:resource="@xml/file_provider_paths" />
-        </provider>
 
     </application>
 

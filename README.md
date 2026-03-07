@@ -1,6 +1,216 @@
 # Kitchen Display — Samsung Galaxy Android App
 
-A full-screen landscape kiosk app designed to be permanently mounted on a kitchen wall (Samsung Galaxy A3 or any Android 6.0+ device). Shows a large clock, live weather, Signal messaging shortcuts, and an in-app YouTube player.
+A full-screen landscape kiosk app for a Samsung Galaxy phone (optimised for the A3, works on any Android 6.0+ device) permanently mounted on a kitchen wall. Shows a large clock, live weather, and integrates with **Nextcloud Talk** for messaging — no Signal, no SIM card needed.
+
+---
+
+## Features
+
+| Feature | Details |
+|---|---|
+| **Landscape lock** | Always forced to landscape; cannot rotate |
+| **Screen always on** | `FLAG_KEEP_SCREEN_ON` keeps the display lit while plugged in |
+| **Boot on startup** | Automatically launches after the device boots |
+| **Kiosk mode** | Immersive full-screen + back-button intercept; full lock-task with optional device-owner ADB setup |
+| **Large clock** | Full-screen digital clock (`HH:mm:ss`) with date |
+| **Live weather** | Powered by [Open-Meteo](https://open-meteo.com/) — no API key required |
+| **Nextcloud Talk shortcuts** | One-tap buttons to send a text or voice DM to a Nextcloud Talk contact |
+| **Receive messages** | Long-polls the Nextcloud Talk API; stores messages in-app and reads text aloud via TTS |
+| **Voice messages** | Records audio → uploads to Nextcloud Files → shares into Talk conversation |
+| **In-app YouTube** | Built-in WebView search + playback; never leaves the app |
+| **20 s idle timeout** | Returns to the main screen after 20 seconds of inactivity (configurable) |
+| **Settings screen** | PIN-protected settings for Nextcloud credentials, contacts, weather, TTS, idle timeout, and kiosk exit |
+
+---
+
+## Requirements
+
+- Android Studio **Hedgehog (2023.1.1)** or later  
+- **JDK 17**  
+- Android Gradle Plugin **8.1.x**  
+- `compileSdk 34`, `minSdk 23` (Android 6.0 Marshmallow)  
+- A **Nextcloud** instance (self-hosted or managed) with the **Talk** app enabled
+
+---
+
+## Quick Build
+
+```bash
+# Clone the repository
+git clone https://github.com/QuizzityMC/SamsungPhoneKitchenDisplay.git
+cd SamsungPhoneKitchenDisplay
+
+# Build debug APK
+./gradlew assembleDebug
+
+# APK location:
+# app/build/outputs/apk/debug/app-debug.apk
+
+# Install directly via ADB
+adb install -r app/build/outputs/apk/debug/app-debug.apk
+```
+
+Or open in **Android Studio → File → Open** and use **Build → Build APK**.
+
+---
+
+## First-Time Device Setup
+
+### 1. Install the APK
+
+```bash
+adb install app-debug.apk
+```
+
+### 2. Configure Nextcloud credentials
+
+Open the app → tap **Settings** (bottom nav) → **Nextcloud Talk Account**:
+
+| Field | Value |
+|---|---|
+| Server URL | `https://your-nextcloud-instance.example.com` |
+| Username | Your Nextcloud login name |
+| App password | Generate one in Nextcloud → **Settings → Security → App passwords** |
+
+Tap **Save & Connect**. The app immediately starts polling your DM rooms.
+
+> **Why an app password?** App passwords can be revoked individually from your Nextcloud account without changing your main password. They also work with two-factor authentication.
+
+### 3. Add contacts
+
+In Settings → **Contacts & Shortcuts**:
+- Tap **Add Contact**
+- Enter a display name (shown on the shortcut button, e.g. "Elisabeth")
+- Enter the contact's **Nextcloud username** (e.g. `elisabeth`)
+
+The app automatically creates a DM Talk room the first time you send a message.
+
+### 4. (Optional) Enable Full Kiosk Mode — Lock-Task
+
+Full kiosk mode (hardware home button + recents truly disabled) requires setting the app as the [Device Owner](https://developer.android.com/work/dpc/build-dpc) once:
+
+```bash
+# Factory-reset the device first (no accounts signed in), then:
+adb shell dpm set-device-owner com.kitchendisplay.app/.KioskDeviceAdminReceiver
+```
+
+Without device-owner mode the app still uses immersive (full-screen) mode and intercepts the software back button.
+
+### 5. Set a Settings PIN *(recommended)*
+
+Inside the app → **Settings → Change Settings PIN** → set a numeric PIN.  
+This PIN is required to access Settings or exit kiosk mode.
+
+---
+
+## Configuration (in-app Settings)
+
+| Setting | Description |
+|---|---|
+| **Nextcloud Server URL** | Base URL of your Nextcloud instance |
+| **Username** | Your Nextcloud login name |
+| **App Password** | An app-specific password generated in Nextcloud Security settings |
+| **Contacts** | Each contact needs a display name + their Nextcloud username. DM rooms are created / looked up automatically. |
+| **Weather location** | Enter a city name; the app geocodes it via Open-Meteo |
+| **Temperature unit** | °C or °F |
+| **Read messages aloud** | Toggle TTS readout of incoming text messages |
+| **Idle timeout** | Seconds of inactivity before returning to the main screen (default: 20) |
+| **Change Settings PIN** | Set or clear the PIN protecting the Settings screen |
+| **Exit Kiosk Mode** | Stops lock-task and returns to the Android home screen (PIN required if set) |
+
+---
+
+## How Nextcloud Talk Integration Works
+
+### Sending text messages
+
+1. Tap a shortcut button on the main screen (or go to **Messages** and select a contact).
+2. Type a message and tap **Send**.
+3. The app calls `POST /ocs/v2.php/apps/spreed/api/v4/chat/{token}` directly — no other app is launched and the screen never leaves the kitchen display.
+
+### Sending voice messages
+
+1. Select a contact, tap **🎤 Record**, speak, tap **⏹ Stop**.
+2. The `.m4a` file is uploaded to `{NextcloudFiles}/Talk/` via WebDAV.
+3. The file is shared into the Talk conversation (`shareType=10`).
+
+### Receiving messages
+
+`NextcloudPollService` runs as a persistent foreground service with one thread per contact. Each thread long-polls:
+
+```
+GET /ocs/v2.php/apps/spreed/api/v4/chat/{token}?lookIntoFuture=1&timeout=30&lastKnownMessageId=X
+```
+
+The server holds the connection for up to 30 seconds and responds immediately when a new message arrives. New messages are:
+- Stored locally (SharedPreferences + Gson).
+- Broadcast as `com.kitchendisplay.app.NEW_MESSAGE` so the open Messages screen refreshes.
+- Optionally read aloud via Android TTS.
+
+No notification-access permission is required — the app communicates directly with the Nextcloud Talk REST API.
+
+---
+
+## Project Structure
+
+```
+app/src/main/
+├── AndroidManifest.xml
+├── java/com/kitchendisplay/app/
+│   ├── MainActivity.kt                   # Host activity; kiosk, idle timer, screen-on, starts poll service
+│   ├── BootReceiver.kt                   # Launches app on device boot
+│   ├── KioskDeviceAdminReceiver.kt       # Device-owner for full lock-task
+│   ├── data/
+│   │   ├── MessageRepository.kt         # SharedPrefs + Gson; contacts, messages, poll state
+│   │   └── SettingsRepository.kt        # App settings including Nextcloud credentials
+│   ├── models/
+│   │   ├── Contact.kt                   # Display name + nextcloudUserId + cachedRoomToken
+│   │   ├── Message.kt                   # Sent/received message
+│   │   └── WeatherData.kt               # Open-Meteo response + WMO helpers
+│   ├── services/
+│   │   ├── NextcloudTalkService.kt      # OCS API v4 HTTP client (sync, background thread)
+│   │   ├── NextcloudPollService.kt      # Foreground service; long-poll DM rooms
+│   │   ├── AudioRecorderHelper.kt       # MediaRecorder wrapper
+│   │   └── WeatherService.kt            # Open-Meteo HTTP client
+│   └── ui/
+│       ├── main/MainFragment.kt         # Clock + weather + shortcut buttons
+│       ├── messages/
+│       │   ├── MessagesFragment.kt      # Compose + message list; sends via Nextcloud API
+│       │   └── MessagesAdapter.kt       # RecyclerView adapter
+│       ├── youtube/YoutubeFragment.kt   # In-app YouTube WebView
+│       └── settings/SettingsFragment.kt # Nextcloud credentials + all settings
+└── res/
+    ├── layout/  (activity_main, fragment_*, item_*, dialog_*)
+    ├── values/  (strings, colors, themes)
+    ├── menu/    (bottom_nav_menu)
+    └── xml/     (device_admin, file_provider_paths)
+```
+
+---
+
+## Permissions Used
+
+| Permission | Purpose |
+|---|---|
+| `INTERNET` | Nextcloud API + weather + YouTube |
+| `WAKE_LOCK` | Keep screen on |
+| `RECEIVE_BOOT_COMPLETED` | Auto-start on boot |
+| `RECORD_AUDIO` | Voice message recording |
+| `FOREGROUND_SERVICE` | Nextcloud poll service stays alive |
+| `FOREGROUND_SERVICE_DATA_SYNC` | Android 14 foreground service type |
+
+---
+
+## Troubleshooting
+
+| Problem | Fix |
+|---|---|
+| Messages not arriving | Check server URL, username, and app password in Settings; verify the Talk app is enabled on your Nextcloud instance |
+| "Failed to send" | Same credentials issue — also check that the contact's Nextcloud username is correct |
+| Voice upload fails | Ensure the Nextcloud account has write access to the Files app |
+| App does not start on boot | Launch the app manually at least once after install |
+| Lock-task not working | Run `adb shell dpm set-device-owner …` (see setup above) |
+
 
 ---
 

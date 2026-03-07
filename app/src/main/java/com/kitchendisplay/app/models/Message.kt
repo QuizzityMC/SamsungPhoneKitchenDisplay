@@ -1,7 +1,7 @@
 package com.kitchendisplay.app.models
 
 /**
- * Represents a message sent to or received from a Signal contact.
+ * Represents a message sent to or received from a Nextcloud Talk contact.
  */
 data class Message(
     val id: String,

@@ -12,26 +12,32 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.Toast
 import androidx.core.content.ContextCompat
-import androidx.core.content.FileProvider
 import androidx.fragment.app.Fragment
+import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.kitchendisplay.app.MainActivity
 import com.kitchendisplay.app.R
 import com.kitchendisplay.app.data.MessageRepository
+import com.kitchendisplay.app.data.SettingsRepository
 import com.kitchendisplay.app.databinding.FragmentMessagesBinding
 import com.kitchendisplay.app.models.Contact
 import com.kitchendisplay.app.models.Message
 import com.kitchendisplay.app.services.AudioRecorderHelper
-import com.kitchendisplay.app.services.SignalNotificationListener
+import com.kitchendisplay.app.services.NextcloudPollService
+import com.kitchendisplay.app.services.NextcloudTalkService
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import java.io.File
 import java.util.UUID
 
 /**
- * Displays recent messages and provides UI to send text or voice messages
- * to a selected Signal contact.
+ * Displays recent Nextcloud Talk messages and lets the user compose and send
+ * text or voice DMs to a selected contact.
  *
- * Signal messages are sent via Android's share intent (ACTION_SEND) targeting
- * the Signal package, which is the standard inter-app sharing mechanism.
+ * Sending happens via the Nextcloud Talk OCS API (HTTP, background coroutine).
+ * New incoming messages are delivered by [NextcloudPollService] via a local
+ * broadcast; no notification-access permission is required.
  */
 class MessagesFragment : Fragment() {
 
@@ -39,14 +45,14 @@ class MessagesFragment : Fragment() {
     private val binding get() = _binding!!
 
     private lateinit var messageRepo: MessageRepository
+    private lateinit var settingsRepo: SettingsRepository
     private lateinit var adapter: MessagesAdapter
     private val audioRecorder = AudioRecorderHelper()
 
     private var selectedContact: Contact? = null
     private var isRecording = false
-    private var currentAudioFile: File? = null
 
-    // Refresh on new incoming Signal notifications
+    /** Refresh the list whenever the poll service delivers a new message. */
     private val newMessageReceiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context, intent: Intent) {
             refreshMessages()
@@ -55,8 +61,8 @@ class MessagesFragment : Fragment() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        messageRepo = MessageRepository(requireContext())
         arguments?.getString(ARG_CONTACT_ID)?.let { contactId ->
-            messageRepo = MessageRepository(requireContext())
             selectedContact = messageRepo.getContacts().find { it.id == contactId }
         }
     }
@@ -71,9 +77,8 @@ class MessagesFragment : Fragment() {
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
-        messageRepo = MessageRepository(requireContext())
+        settingsRepo = SettingsRepository(requireContext())
 
-        // RecyclerView
         adapter = MessagesAdapter(emptyList()) { msg ->
             msg.voiceFilePath?.let { audioRecorder.playFile(it) }
         }
@@ -83,19 +88,14 @@ class MessagesFragment : Fragment() {
         }
         binding.rvMessages.adapter = adapter
 
-        // Contact spinner
         populateContactSpinner()
 
-        // Pre-select contact if launched from shortcut
         selectedContact?.let { contact ->
             val pos = messageRepo.getContacts().indexOfFirst { it.id == contact.id }
-            if (pos >= 0) binding.spinnerContacts.setSelection(pos)
+            if (pos >= 0) binding.spinnerContacts.setSelection(pos + 1)
         }
 
-        // Send text
         binding.btnSendText.setOnClickListener { sendText() }
-
-        // Voice record toggle
         binding.btnVoice.setOnClickListener { toggleRecording() }
 
         refreshMessages()
@@ -103,7 +103,7 @@ class MessagesFragment : Fragment() {
 
     override fun onResume() {
         super.onResume()
-        val filter = IntentFilter(SignalNotificationListener.ACTION_NEW_MESSAGE)
+        val filter = IntentFilter(NextcloudPollService.ACTION_NEW_MESSAGE)
         ContextCompat.registerReceiver(
             requireContext(),
             newMessageReceiver,
@@ -134,17 +134,13 @@ class MessagesFragment : Fragment() {
             requireContext(),
             android.R.layout.simple_spinner_item,
             names
-        ).apply {
-            setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
-        }
+        ).apply { setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item) }
         binding.spinnerContacts.adapter = spinnerAdapter
         binding.spinnerContacts.onItemSelectedListener =
             object : android.widget.AdapterView.OnItemSelectedListener {
                 override fun onItemSelected(
                     parent: android.widget.AdapterView<*>, v: View?, pos: Int, id: Long
-                ) {
-                    selectedContact = if (pos == 0) null else contacts[pos - 1]
-                }
+                ) { selectedContact = if (pos == 0) null else contacts[pos - 1] }
                 override fun onNothingSelected(parent: android.widget.AdapterView<*>) {
                     selectedContact = null
                 }
@@ -155,8 +151,7 @@ class MessagesFragment : Fragment() {
 
     private fun sendText() {
         val contact = selectedContact ?: run {
-            Toast.makeText(requireContext(), R.string.select_contact_first, Toast.LENGTH_SHORT)
-                .show()
+            Toast.makeText(requireContext(), R.string.select_contact_first, Toast.LENGTH_SHORT).show()
             return
         }
         val text = binding.etMessage.text.toString().trim()
@@ -164,29 +159,35 @@ class MessagesFragment : Fragment() {
             Toast.makeText(requireContext(), R.string.enter_message, Toast.LENGTH_SHORT).show()
             return
         }
+        if (!checkNextcloudConfig()) return
 
-        // Send to Signal via ACTION_SEND intent (briefly switches to Signal)
-        val signalPkg = "org.thoughtcrime.securesms"
-        val shareIntent = Intent(Intent.ACTION_SEND).apply {
-            type = "text/plain"
-            putExtra(Intent.EXTRA_TEXT, text)
-            setPackage(signalPkg)
+        binding.btnSendText.isEnabled = false
+        lifecycleScope.launch {
+            val success = withContext(Dispatchers.IO) {
+                val talkService = buildTalkService()
+                val token = resolveRoomToken(talkService, contact) ?: return@withContext false
+                talkService.sendTextMessage(token, text) >= 0
+            }
+            if (_binding == null) return@launch
+            binding.btnSendText.isEnabled = true
+            if (success) {
+                messageRepo.addMessage(
+                    Message(
+                        id = UUID.randomUUID().toString(),
+                        contactId = contact.id,
+                        contactName = contact.displayName,
+                        text = text,
+                        timestamp = System.currentTimeMillis(),
+                        isVoice = false,
+                        direction = Message.Direction.SENT
+                    )
+                )
+                binding.etMessage.setText("")
+                refreshMessages()
+            } else {
+                Toast.makeText(requireContext(), R.string.send_failed, Toast.LENGTH_SHORT).show()
+            }
         }
-        startActivity(Intent.createChooser(shareIntent, getString(R.string.send_via)))
-
-        // Save locally
-        val message = Message(
-            id = UUID.randomUUID().toString(),
-            contactId = contact.id,
-            contactName = contact.displayName,
-            text = text,
-            timestamp = System.currentTimeMillis(),
-            isVoice = false,
-            direction = Message.Direction.SENT
-        )
-        messageRepo.addMessage(message)
-        binding.etMessage.setText("")
-        refreshMessages()
     }
 
     // ── Voice recording ───────────────────────────────────────────────────
@@ -200,25 +201,23 @@ class MessagesFragment : Fragment() {
                 requireContext(), Manifest.permission.RECORD_AUDIO
             ) != PackageManager.PERMISSION_GRANTED
         ) {
+            @Suppress("DEPRECATION")
             requestPermissions(arrayOf(Manifest.permission.RECORD_AUDIO), RC_AUDIO)
             return
         }
-        val contact = selectedContact ?: run {
-            Toast.makeText(requireContext(), R.string.select_contact_first, Toast.LENGTH_SHORT)
-                .show()
+        if (selectedContact == null) {
+            Toast.makeText(requireContext(), R.string.select_contact_first, Toast.LENGTH_SHORT).show()
             return
         }
-        currentAudioFile = File(
-            requireContext().cacheDir,
-            "voice_${System.currentTimeMillis()}.m4a"
-        )
-        audioRecorder.startRecording(currentAudioFile!!)
+        if (!checkNextcloudConfig()) return
+
+        val file = File(requireContext().cacheDir, "voice_${System.currentTimeMillis()}.m4a")
+        audioRecorder.startRecording(file)
         isRecording = true
         binding.btnVoice.text = getString(R.string.stop_recording)
         binding.btnVoice.setBackgroundColor(
             ContextCompat.getColor(requireContext(), R.color.recording_red)
         )
-        // Prevent idle timeout while recording
         (activity as? MainActivity)?.suppressIdleReturn = true
     }
 
@@ -232,35 +231,35 @@ class MessagesFragment : Fragment() {
         (activity as? MainActivity)?.suppressIdleReturn = false
         (activity as? MainActivity)?.resetIdleTimer()
 
-        if (send && path != null && selectedContact != null) {
-            val contact = selectedContact!!
-            val file = File(path)
-            val uri = FileProvider.getUriForFile(
-                requireContext(),
-                "${requireContext().packageName}.fileprovider",
-                file
-            )
-            val intent = Intent(Intent.ACTION_SEND).apply {
-                type = "audio/mp4"
-                putExtra(Intent.EXTRA_STREAM, uri)
-                addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
-                setPackage("org.thoughtcrime.securesms")
-            }
-            startActivity(intent)
+        val contact = selectedContact ?: return
+        if (!send || path == null) return
 
-            // Save locally
-            val message = Message(
-                id = UUID.randomUUID().toString(),
-                contactId = contact.id,
-                contactName = contact.displayName,
-                text = "",
-                timestamp = System.currentTimeMillis(),
-                isVoice = true,
-                voiceFilePath = path,
-                direction = Message.Direction.SENT
-            )
-            messageRepo.addMessage(message)
-            refreshMessages()
+        binding.btnVoice.isEnabled = false
+        lifecycleScope.launch {
+            val success = withContext(Dispatchers.IO) {
+                val talkService = buildTalkService()
+                val token = resolveRoomToken(talkService, contact) ?: return@withContext false
+                talkService.sendVoiceMessage(token, File(path))
+            }
+            if (_binding == null) return@launch
+            binding.btnVoice.isEnabled = true
+            if (success) {
+                messageRepo.addMessage(
+                    Message(
+                        id = UUID.randomUUID().toString(),
+                        contactId = contact.id,
+                        contactName = contact.displayName,
+                        text = "",
+                        timestamp = System.currentTimeMillis(),
+                        isVoice = true,
+                        voiceFilePath = path,
+                        direction = Message.Direction.SENT
+                    )
+                )
+                refreshMessages()
+            } else {
+                Toast.makeText(requireContext(), R.string.send_failed, Toast.LENGTH_SHORT).show()
+            }
         }
     }
 
@@ -271,12 +270,43 @@ class MessagesFragment : Fragment() {
         if (requestCode == RC_AUDIO &&
             grantResults.isNotEmpty() &&
             grantResults[0] == PackageManager.PERMISSION_GRANTED
-        ) {
-            startRecording()
-        }
+        ) startRecording()
     }
 
     // ── Helpers ───────────────────────────────────────────────────────────
+
+    private fun checkNextcloudConfig(): Boolean {
+        if (settingsRepo.nextcloudServerUrl.isEmpty() ||
+            settingsRepo.nextcloudUsername.isEmpty() ||
+            settingsRepo.nextcloudPassword.isEmpty()
+        ) {
+            Toast.makeText(requireContext(), R.string.nextcloud_not_configured, Toast.LENGTH_LONG)
+                .show()
+            return false
+        }
+        return true
+    }
+
+    private fun buildTalkService() = NextcloudTalkService(
+        settingsRepo.nextcloudServerUrl,
+        settingsRepo.nextcloudUsername,
+        settingsRepo.nextcloudPassword
+    )
+
+    /**
+     * Returns the DM room token for [contact], using the cached value when
+     * available or calling the API to resolve/create the room.
+     * Persists the token into the contact record so future calls are instant.
+     */
+    private fun resolveRoomToken(
+        talkService: NextcloudTalkService,
+        contact: Contact
+    ): String? {
+        if (contact.cachedRoomToken.isNotEmpty()) return contact.cachedRoomToken
+        val token = talkService.getOrCreateDmToken(contact.nextcloudUserId) ?: return null
+        messageRepo.cacheRoomToken(contact.id, token)
+        return token
+    }
 
     private fun refreshMessages() {
         val messages = messageRepo.getMessages()
@@ -290,10 +320,8 @@ class MessagesFragment : Fragment() {
         private const val ARG_CONTACT_ID = "contact_id"
         private const val RC_AUDIO = 1001
 
-        fun newInstance(contactId: String): MessagesFragment {
-            return MessagesFragment().apply {
-                arguments = Bundle().apply { putString(ARG_CONTACT_ID, contactId) }
-            }
+        fun newInstance(contactId: String) = MessagesFragment().apply {
+            arguments = Bundle().apply { putString(ARG_CONTACT_ID, contactId) }
         }
     }
 }

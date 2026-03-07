@@ -11,6 +11,27 @@ class SettingsRepository(context: Context) {
     private val prefs: SharedPreferences =
         context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
 
+    // ──────────────── Nextcloud account ────────────────
+
+    /** Base URL of the Nextcloud instance, e.g. "https://cloud.example.com" */
+    var nextcloudServerUrl: String
+        get() = prefs.getString(KEY_NC_URL, "") ?: ""
+        set(value) = prefs.edit().putString(KEY_NC_URL, value.trimEnd('/')).apply()
+
+    /** Nextcloud login username */
+    var nextcloudUsername: String
+        get() = prefs.getString(KEY_NC_USER, "") ?: ""
+        set(value) = prefs.edit().putString(KEY_NC_USER, value).apply()
+
+    /**
+     * Nextcloud app password (recommended) or account password.
+     * Stored in SharedPreferences — use an app password so you can revoke
+     * access without changing your main password.
+     */
+    var nextcloudPassword: String
+        get() = prefs.getString(KEY_NC_PASS, "") ?: ""
+        set(value) = prefs.edit().putString(KEY_NC_PASS, value).apply()
+
     // ──────────────── Weather ────────────────
 
     var weatherLocation: String
@@ -57,6 +78,9 @@ class SettingsRepository(context: Context) {
 
     companion object {
         private const val PREFS_NAME = "kitchen_settings"
+        private const val KEY_NC_URL = "nc_server_url"
+        private const val KEY_NC_USER = "nc_username"
+        private const val KEY_NC_PASS = "nc_password"
         private const val KEY_WEATHER_LOCATION = "weather_location"
         private const val KEY_WEATHER_LAT = "weather_lat"
         private const val KEY_WEATHER_LON = "weather_lon"

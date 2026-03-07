@@ -9,7 +9,8 @@ import com.kitchendisplay.app.models.Message
 
 /**
  * Lightweight repository backed by SharedPreferences + Gson.
- * Stores contacts (shortcuts) and the most recent messages.
+ * Stores contacts (shortcuts), the most recent messages, and per-contact
+ * Nextcloud Talk state (last-known message ID, cached room token).
  */
 class MessageRepository(context: Context) {
 
@@ -38,6 +39,10 @@ class MessageRepository(context: Context) {
 
     fun removeContact(id: String) {
         saveContacts(getContacts().filter { it.id != id })
+        // Clean up associated per-contact state
+        prefs.edit()
+            .remove(KEY_LAST_MSG_PREFIX + id)
+            .apply()
     }
 
     // ──────────────── Messages ────────────────
@@ -51,7 +56,6 @@ class MessageRepository(context: Context) {
     fun addMessage(message: Message) {
         val list = getMessages().toMutableList()
         list.add(0, message)
-        // Keep only the most recent MAX_MESSAGES
         val trimmed = if (list.size > MAX_MESSAGES) list.subList(0, MAX_MESSAGES) else list
         prefs.edit().putString(KEY_MESSAGES, gson.toJson(trimmed)).apply()
     }
@@ -60,10 +64,37 @@ class MessageRepository(context: Context) {
         prefs.edit().remove(KEY_MESSAGES).apply()
     }
 
+    // ──────────────── Nextcloud Talk state ────────────────
+
+    /**
+     * Returns the Nextcloud Talk message ID of the last message seen for
+     * [contactId]. Used by the poll service to request only newer messages.
+     * Returns 0 if no messages have been seen yet.
+     */
+    fun getLastMessageId(contactId: String): Long =
+        prefs.getLong(KEY_LAST_MSG_PREFIX + contactId, 0L)
+
+    /** Persists the last-seen Nextcloud Talk message ID for [contactId]. */
+    fun setLastMessageId(contactId: String, messageId: Long) {
+        prefs.edit().putLong(KEY_LAST_MSG_PREFIX + contactId, messageId).apply()
+    }
+
+    /**
+     * Updates the [cachedRoomToken] field on the stored contact with [contactId].
+     * This avoids a redundant API call on every send/poll cycle.
+     */
+    fun cacheRoomToken(contactId: String, token: String) {
+        val list = getContacts().map { c ->
+            if (c.id == contactId) c.copy(cachedRoomToken = token) else c
+        }
+        saveContacts(list)
+    }
+
     companion object {
         private const val PREFS_NAME = "kitchen_messages"
         private const val KEY_CONTACTS = "contacts"
         private const val KEY_MESSAGES = "messages"
+        private const val KEY_LAST_MSG_PREFIX = "last_msg_id_"
         private const val MAX_MESSAGES = 200
     }
 }

@@ -14,6 +14,7 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.fragment.app.Fragment
 import com.kitchendisplay.app.databinding.ActivityMainBinding
 import com.kitchendisplay.app.data.SettingsRepository
+import com.kitchendisplay.app.services.NextcloudPollService
 import com.kitchendisplay.app.ui.main.MainFragment
 import com.kitchendisplay.app.ui.messages.MessagesFragment
 import com.kitchendisplay.app.ui.settings.SettingsFragment
@@ -84,6 +85,13 @@ class MainActivity : AppCompatActivity() {
         super.onResume()
         enableImmersiveMode()
         resetIdleTimer()
+        // Start the Nextcloud Talk poll service if credentials are configured
+        if (settings.nextcloudServerUrl.isNotEmpty() &&
+            settings.nextcloudUsername.isNotEmpty() &&
+            settings.nextcloudPassword.isNotEmpty()
+        ) {
+            NextcloudPollService.start(this)
+        }
     }
 
     override fun onPause() {
