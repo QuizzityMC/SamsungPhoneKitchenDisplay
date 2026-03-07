@@ -125,8 +125,10 @@ class ClockFragment : Fragment() {
         if (StopwatchState.isRunning) swHandler.post(swRunnable)
         // If alarm was triggered while we were away, show the alert UI
         if (TimerState.alarmTriggered && alarmPlayer == null) {
-            showAlarmUi()
+            fireAlarm()
         }
+        // Suppress idle auto-return while any timer/stopwatch activity is active
+        updateIdleSuppression()
     }
 
     override fun onPause() {
@@ -134,6 +136,8 @@ class ClockFragment : Fragment() {
         clockHandler.removeCallbacks(clockRunnable)
         timerHandler.removeCallbacks(timerRunnable)
         swHandler.removeCallbacks(swRunnable)
+        // Restore normal idle behaviour when leaving the clock screen
+        (activity as? com.kitchendisplay.app.MainActivity)?.suppressIdleReturn = false
         // Do NOT stop the alarm player here — it should keep ringing until dismissed
     }
 
@@ -183,6 +187,23 @@ class ClockFragment : Fragment() {
         rebuildLapList()
     }
 
+    // ── Idle suppression ──────────────────────────────────────────────────
+
+    /**
+     * Tell the activity to suppress (or restore) the idle-return timer based on
+     * whether any timer/stopwatch activity is currently live.  Called whenever
+     * state changes and on every resume/pause.
+     */
+    private fun updateIdleSuppression() {
+        val active = TimerState.isRunning || TimerState.isPaused ||
+                TimerState.alarmTriggered ||
+                StopwatchState.isRunning || StopwatchState.isPaused ||
+                // Also suppress when the stopwatch has a recorded time but has been reset
+                // to show laps — elapsedAtPauseMs > 0 catches this edge case.
+                StopwatchState.elapsedAtPauseMs > 0
+        (activity as? com.kitchendisplay.app.MainActivity)?.suppressIdleReturn = active
+    }
+
     // ── Timer ─────────────────────────────────────────────────────────────
 
     private fun setupTimerButtons() {
@@ -213,6 +234,7 @@ class ClockFragment : Fragment() {
                 binding.tvTimerDisplay.visibility = View.VISIBLE
                 binding.btnTimerStart.text = getString(R.string.pause)
                 timerHandler.post(timerRunnable)
+                updateIdleSuppression()
             }
 
             TimerState.isRunning -> {
@@ -223,6 +245,7 @@ class ClockFragment : Fragment() {
                 TimerState.isPaused = true
                 timerHandler.removeCallbacks(timerRunnable)
                 binding.btnTimerStart.text = getString(R.string.resume)
+                updateIdleSuppression()
             }
 
             TimerState.isPaused -> {
@@ -233,6 +256,7 @@ class ClockFragment : Fragment() {
                 TimerState.isPaused = false
                 binding.btnTimerStart.text = getString(R.string.pause)
                 timerHandler.post(timerRunnable)
+                updateIdleSuppression()
             }
         }
     }
@@ -252,6 +276,7 @@ class ClockFragment : Fragment() {
         binding.tvTimerStatus.text = ""
         binding.btnTimerStart.text = getString(R.string.start)
         binding.btnTimerStopAlarm.visibility = View.GONE
+        updateIdleSuppression()
     }
 
     private fun updateTimerDisplay(remainingMs: Long) {
@@ -268,6 +293,7 @@ class ClockFragment : Fragment() {
 
     private fun fireAlarm() {
         showAlarmUi()
+        updateIdleSuppression()
         try {
             val am = requireContext().getSystemService(Context.AUDIO_SERVICE) as AudioManager
             // Save current volume and raise to max so the alarm is always audible
@@ -326,6 +352,7 @@ class ClockFragment : Fragment() {
         )
         _binding?.btnTimerStopAlarm?.visibility = View.GONE
         _binding?.btnTimerStart?.text = getString(R.string.start)
+        updateIdleSuppression()
     }
 
     // ── Stopwatch ─────────────────────────────────────────────────────────
@@ -352,6 +379,7 @@ class ClockFragment : Fragment() {
             swHandler.post(swRunnable)
             binding.btnSwStartStop.text = getString(R.string.stop)
         }
+        updateIdleSuppression()
     }
 
     private fun onSwLap() {
@@ -372,6 +400,7 @@ class ClockFragment : Fragment() {
         binding.tvStopwatchDisplay.text = "00:00.0"
         binding.btnSwStartStop.text = getString(R.string.start)
         binding.llLaps.removeAllViews()
+        updateIdleSuppression()
     }
 
     private fun updateSwDisplay(elapsedMs: Long) {

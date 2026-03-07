@@ -9,7 +9,9 @@ data class WeatherData(
     val windSpeedKmh: Double,
     val location: String,
     /** 7-day daily forecast (today first). Empty if not fetched. */
-    val forecast: List<DailyForecast> = emptyList()
+    val forecast: List<DailyForecast> = emptyList(),
+    /** Today's hour-by-hour forecast (00:00–23:00). Empty if not fetched. */
+    val hourlyForecast: List<HourlyForecast> = emptyList()
 ) {
     /** Human-readable description derived from WMO weather code */
     val description: String get() = weatherCodeToDescription(weatherCode)
@@ -75,4 +77,25 @@ data class DailyForecast(
         } catch (_: Exception) {
             date
         }
+}
+
+/**
+ * One hour's forecast from the Open-Meteo hourly API.
+ */
+data class HourlyForecast(
+    /** ISO datetime string e.g. "2024-01-15T14:00" */
+    val time: String,
+    val weatherCode: Int,
+    val temperatureCelsius: Double,
+    val feelsLikeCelsius: Double,
+    val precipitationMm: Double,
+    val windSpeedKmh: Double,
+    val humidityPercent: Int
+) {
+    val icon: String get() = WeatherData.weatherCodeToIcon(weatherCode)
+    val description: String get() = WeatherData.weatherCodeToDescription(weatherCode)
+
+    /** "HH:mm" extracted from the ISO datetime */
+    val hourLabel: String
+        get() = try { time.substring(11, 16) } catch (_: Exception) { time }
 }

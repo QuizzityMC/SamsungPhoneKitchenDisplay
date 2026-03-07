@@ -79,7 +79,7 @@
         android:background="@color/divider"
         android:layout_marginHorizontal="8dp" />
 
-    <!-- Right: 7-day forecast (60% width) -->
+    <!-- Right: Forecast (60% width) — toggle between Today (hourly) & 7-Day -->
     <LinearLayout
         android:layout_width="0dp"
         android:layout_height="match_parent"
@@ -87,20 +87,48 @@
         android:orientation="vertical"
         android:paddingStart="8dp">
 
-        <TextView
-            android:layout_width="match_parent"
+        <!-- Toggle: Today / 7-Day -->
+        <RadioGroup
+            android:id="@+id/rg_forecast_mode"
+            android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="@string/weather_7day_forecast"
-            android:textColor="@color/accent"
-            android:textSize="16sp"
-            android:textStyle="bold"
-            android:paddingBottom="8dp" />
+            android:orientation="horizontal"
+            android:layout_marginBottom="8dp">
 
+            <RadioButton
+                android:id="@+id/rb_hourly"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/weather_today_hourly"
+                android:textColor="@color/text_primary"
+                android:textSize="15sp"
+                android:checked="true" />
+
+            <RadioButton
+                android:id="@+id/rb_daily"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/weather_7day_forecast"
+                android:textColor="@color/text_primary"
+                android:textSize="15sp"
+                android:layout_marginStart="24dp" />
+
+        </RadioGroup>
+
+        <!-- Hourly RecyclerView (today) -->
+        <androidx.recyclerview.widget.RecyclerView
+            android:id="@+id/rv_hourly"
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_weight="1" />
+
+        <!-- Daily RecyclerView (7-day) -->
         <androidx.recyclerview.widget.RecyclerView
             android:id="@+id/rv_forecast"
             android:layout_width="match_parent"
             android:layout_height="0dp"
-            android:layout_weight="1" />
+            android:layout_weight="1"
+            android:visibility="gone" />
 
     </LinearLayout>
 

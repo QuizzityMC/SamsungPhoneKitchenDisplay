@@ -21,6 +21,7 @@ import com.kitchendisplay.app.ui.messages.MessagesFragment
 import com.kitchendisplay.app.ui.notes.NotesFragment
 import com.kitchendisplay.app.ui.settings.SettingsFragment
 import com.kitchendisplay.app.ui.weather.WeatherFragment
+import com.kitchendisplay.app.ui.youtube.YoutubeFragment
 
 /**
  * Single activity host.
@@ -75,6 +76,7 @@ class MainActivity : AppCompatActivity() {
                 R.id.nav_weather -> showFragment(WeatherFragment(), "weather")
                 R.id.nav_clock -> showFragment(ClockFragment(), "clock")
                 R.id.nav_notes -> showFragment(NotesFragment(), "notes")
+                R.id.nav_youtube -> showFragment(YoutubeFragment(), "youtube")
                 R.id.nav_settings -> showFragment(SettingsFragment(), "settings")
             }
             true

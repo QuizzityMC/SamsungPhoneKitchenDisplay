@@ -84,6 +84,7 @@
 
     <!-- Weather detail -->
     <string name="weather_7day_forecast">7-Day Forecast</string>
+    <string name="weather_today_hourly">Today (Hourly)</string>
     <string name="weather_loading">Fetching weather…</string>
     <string name="refresh">Refresh</string>
 
