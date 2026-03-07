@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <!-- Dark, full-screen theme for the kitchen display -->
+    <style name="Theme.KitchenDisplay" parent="Theme.MaterialComponents.DayNight.NoActionBar">
+        <item name="colorPrimary">@color/accent</item>
+        <item name="colorPrimaryVariant">@color/surface</item>
+        <item name="colorOnPrimary">@color/background</item>
+        <item name="colorSecondary">@color/button_default</item>
+        <item name="colorOnSecondary">@color/white</item>
+        <item name="android:windowBackground">@color/background</item>
+        <item name="android:statusBarColor">@color/nav_background</item>
+        <item name="android:navigationBarColor">@color/nav_background</item>
+        <item name="android:textColor">@color/text_primary</item>
+        <item name="android:windowFullscreen">true</item>
+    </style>
+
+</resources>
