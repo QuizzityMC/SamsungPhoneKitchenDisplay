@@ -5,6 +5,9 @@
     <!-- Navigation -->
     <string name="nav_home">Home</string>
     <string name="nav_messages">Messages</string>
+    <string name="nav_weather">Weather</string>
+    <string name="nav_clock">Clock</string>
+    <string name="nav_notes">Notes</string>
     <string name="nav_youtube">YouTube</string>
     <string name="nav_settings">Settings</string>
 
@@ -66,6 +69,30 @@
     <!-- Display settings -->
     <string name="idle_timeout_label">Return to home after</string>
     <string name="seconds">seconds</string>
+
+    <!-- Clock / Timer / Stopwatch -->
+    <string name="timer">Timer</string>
+    <string name="stopwatch">Stopwatch</string>
+    <string name="start">Start</string>
+    <string name="stop">Stop</string>
+    <string name="pause">Pause</string>
+    <string name="resume">Resume</string>
+    <string name="reset">Reset</string>
+    <string name="lap">Lap</string>
+    <string name="stop_alarm">Stop Alarm</string>
+    <string name="timer_done">⏰ TIME\'S UP!</string>
+
+    <!-- Weather detail -->
+    <string name="weather_7day_forecast">7-Day Forecast</string>
+    <string name="weather_loading">Fetching weather…</string>
+    <string name="refresh">Refresh</string>
+
+    <!-- Notes -->
+    <string name="new_note">+ New Note</string>
+    <string name="delete_note">Delete</string>
+    <string name="select_note_hint">Select a note from the list or create a new one</string>
+    <string name="note_hint">Start typing your note…</string>
+    <string name="auto_saved">✓ Saved</string>
 
     <!-- Security / kiosk -->
     <string name="change_pin">Change Settings PIN</string>

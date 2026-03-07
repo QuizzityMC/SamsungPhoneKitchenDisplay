@@ -70,7 +70,7 @@ class NextcloudTalkService(
             val json = gson.fromJson(body, JsonObject::class.java)
             val data = json.getAsJsonObject("ocs")?.getAsJsonArray("data") ?: return null
             data.map { it.asJsonObject }
-        } catch (e: IOException) {
+        } catch (_: Exception) {
             null
         }
     }
@@ -92,7 +92,7 @@ class NextcloudTalkService(
                 ?.getAsJsonObject("ocs")
                 ?.getAsJsonObject("data")
                 ?.get("token")?.asString
-        } catch (e: IOException) {
+        } catch (_: Exception) {
             null
         }
     }
@@ -119,7 +119,7 @@ class NextcloudTalkService(
                 ?.getAsJsonObject("ocs")
                 ?.getAsJsonObject("data")
                 ?.get("id")?.asLong ?: -1
-        } catch (e: IOException) {
+        } catch (_: Exception) {
             -1
         }
     }
@@ -130,22 +130,19 @@ class NextcloudTalkService(
      * Returns true on success.
      */
     fun sendVoiceMessage(roomToken: String, audioFile: File): Boolean {
-        // 1. Upload via WebDAV — create the Talk folder if necessary
         val davBase = "$baseUrl/remote.php/dav/files/$username/Talk"
         ensureDir(davBase)
         val remotePath = "/Talk/${audioFile.name}"
 
-        val uploadReq = Request.Builder()
-            .url("$davBase/${audioFile.name}")
-            .addHeader("Authorization", credentials)
-            .put(audioFile.asRequestBody("audio/mp4".toMediaType()))
-            .build()
         return try {
+            val uploadReq = Request.Builder()
+                .url("$davBase/${audioFile.name}")
+                .addHeader("Authorization", credentials)
+                .put(audioFile.asRequestBody("audio/mp4".toMediaType()))
+                .build()
             val uploadResp = client.newCall(uploadReq).execute()
-            // 201 Created or 204 No Content both indicate success
             if (uploadResp.code !in 200..204) return false
 
-            // 2. Share the file into the Talk conversation (shareType=10)
             val shareBody =
                 "shareType=10&shareWith=${enc(roomToken)}&path=${enc(remotePath)}"
                     .toRequestBody(FORM_TYPE)
@@ -157,7 +154,7 @@ class NextcloudTalkService(
                 .post(shareBody)
                 .build()
             client.newCall(shareReq).execute().isSuccessful
-        } catch (e: IOException) {
+        } catch (_: Exception) {
             false
         }
     }
@@ -182,7 +179,7 @@ class NextcloudTalkService(
             val json = gson.fromJson(body, JsonObject::class.java)
             val data = json.getAsJsonObject("ocs")?.getAsJsonArray("data") ?: return null
             data.map { it.asJsonObject }
-        } catch (e: IOException) {
+        } catch (_: Exception) {
             null
         }
     }
@@ -200,7 +197,7 @@ class NextcloudTalkService(
             val json = gson.fromJson(body, JsonObject::class.java)
             val data = json.getAsJsonObject("ocs")?.getAsJsonArray("data") ?: return emptyList()
             data.map { it.asJsonObject }
-        } catch (e: IOException) {
+        } catch (_: Exception) {
             emptyList()
         }
     }
@@ -232,11 +229,11 @@ class NextcloudTalkService(
             val req = Request.Builder()
                 .url(davDirUrl)
                 .addHeader("Authorization", credentials)
-                .method("MKCOL", null)
+                .method("MKCOL", ByteArray(0).toRequestBody())
                 .build()
             client.newCall(req).execute()
-        } catch (_: IOException) {
-            // Ignore — directory likely already exists
+        } catch (_: Exception) {
+            // Ignore — directory likely already exists, or server doesn't support MKCOL
         }
     }
 

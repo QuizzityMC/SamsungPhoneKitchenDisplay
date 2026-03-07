@@ -16,6 +16,9 @@
     <!-- Foreground service for Nextcloud Talk polling -->
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_DATA_SYNC" />
+    <!-- Alarm sound volume control for clock timer -->
+    <uses-permission android:name="android.permission.MODIFY_AUDIO_SETTINGS" />
+    <uses-permission android:name="android.permission.VIBRATE" />
     <!-- System alert window for overlay (optional enhanced kiosk) -->
     <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />
     <!-- Device admin for full lock-task / kiosk support -->

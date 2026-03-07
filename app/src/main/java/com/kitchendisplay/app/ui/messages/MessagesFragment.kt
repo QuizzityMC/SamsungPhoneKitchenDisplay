@@ -114,7 +114,9 @@ class MessagesFragment : Fragment() {
 
     override fun onPause() {
         super.onPause()
-        requireContext().unregisterReceiver(newMessageReceiver)
+        try {
+            requireContext().unregisterReceiver(newMessageReceiver)
+        } catch (_: Exception) { /* not registered */ }
         if (isRecording) stopRecording(send = false)
     }
 
@@ -163,10 +165,14 @@ class MessagesFragment : Fragment() {
 
         binding.btnSendText.isEnabled = false
         lifecycleScope.launch {
-            val success = withContext(Dispatchers.IO) {
-                val talkService = buildTalkService()
-                val token = resolveRoomToken(talkService, contact) ?: return@withContext false
-                talkService.sendTextMessage(token, text) >= 0
+            val success = try {
+                withContext(Dispatchers.IO) {
+                    val talkService = buildTalkService()
+                    val token = resolveRoomToken(talkService, contact) ?: return@withContext false
+                    talkService.sendTextMessage(token, text) >= 0
+                }
+            } catch (_: Exception) {
+                false
             }
             if (_binding == null) return@launch
             binding.btnSendText.isEnabled = true
@@ -224,8 +230,8 @@ class MessagesFragment : Fragment() {
     private fun stopRecording(send: Boolean) {
         val path = audioRecorder.stopRecording()
         isRecording = false
-        binding.btnVoice.text = getString(R.string.record_voice)
-        binding.btnVoice.setBackgroundColor(
+        _binding?.btnVoice?.text = getString(R.string.record_voice)
+        _binding?.btnVoice?.setBackgroundColor(
             ContextCompat.getColor(requireContext(), R.color.button_default)
         )
         (activity as? MainActivity)?.suppressIdleReturn = false
@@ -234,12 +240,16 @@ class MessagesFragment : Fragment() {
         val contact = selectedContact ?: return
         if (!send || path == null) return
 
-        binding.btnVoice.isEnabled = false
+        _binding?.btnVoice?.isEnabled = false
         lifecycleScope.launch {
-            val success = withContext(Dispatchers.IO) {
-                val talkService = buildTalkService()
-                val token = resolveRoomToken(talkService, contact) ?: return@withContext false
-                talkService.sendVoiceMessage(token, File(path))
+            val success = try {
+                withContext(Dispatchers.IO) {
+                    val talkService = buildTalkService()
+                    val token = resolveRoomToken(talkService, contact) ?: return@withContext false
+                    talkService.sendVoiceMessage(token, File(path))
+                }
+            } catch (_: Exception) {
+                false
             }
             if (_binding == null) return@launch
             binding.btnVoice.isEnabled = true

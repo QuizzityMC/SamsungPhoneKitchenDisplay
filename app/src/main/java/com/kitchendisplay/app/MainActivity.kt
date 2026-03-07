@@ -15,9 +15,12 @@ import androidx.fragment.app.Fragment
 import com.kitchendisplay.app.databinding.ActivityMainBinding
 import com.kitchendisplay.app.data.SettingsRepository
 import com.kitchendisplay.app.services.NextcloudPollService
+import com.kitchendisplay.app.ui.clock.ClockFragment
 import com.kitchendisplay.app.ui.main.MainFragment
 import com.kitchendisplay.app.ui.messages.MessagesFragment
+import com.kitchendisplay.app.ui.notes.NotesFragment
 import com.kitchendisplay.app.ui.settings.SettingsFragment
+import com.kitchendisplay.app.ui.weather.WeatherFragment
 import com.kitchendisplay.app.ui.youtube.YoutubeFragment
 
 /**
@@ -70,7 +73,9 @@ class MainActivity : AppCompatActivity() {
             when (item.itemId) {
                 R.id.nav_home -> showFragment(MainFragment(), "home")
                 R.id.nav_messages -> showFragment(MessagesFragment(), "messages")
-                R.id.nav_youtube -> showFragment(YoutubeFragment(), "youtube")
+                R.id.nav_weather -> showFragment(WeatherFragment(), "weather")
+                R.id.nav_clock -> showFragment(ClockFragment(), "clock")
+                R.id.nav_notes -> showFragment(NotesFragment(), "notes")
                 R.id.nav_settings -> showFragment(SettingsFragment(), "settings")
             }
             true

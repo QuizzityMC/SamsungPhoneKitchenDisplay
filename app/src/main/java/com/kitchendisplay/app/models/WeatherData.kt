@@ -7,7 +7,9 @@ data class WeatherData(
     val temperatureCelsius: Double,
     val weatherCode: Int,
     val windSpeedKmh: Double,
-    val location: String
+    val location: String,
+    /** 7-day daily forecast (today first). Empty if not fetched. */
+    val forecast: List<DailyForecast> = emptyList()
 ) {
     /** Human-readable description derived from WMO weather code */
     val description: String get() = weatherCodeToDescription(weatherCode)
@@ -46,4 +48,31 @@ data class WeatherData(
             else -> "🌡️"
         }
     }
+}
+
+/**
+ * One day's forecast from the Open-Meteo daily API.
+ */
+data class DailyForecast(
+    /** ISO date string e.g. "2024-01-15" */
+    val date: String,
+    val weatherCode: Int,
+    val maxTempCelsius: Double,
+    val minTempCelsius: Double,
+    val precipitationMm: Double,
+    val maxWindSpeedKmh: Double
+) {
+    val icon: String get() = WeatherData.weatherCodeToIcon(weatherCode)
+    val description: String get() = WeatherData.weatherCodeToDescription(weatherCode)
+
+    /** Short day-of-week label, e.g. "Mon" */
+    val dayLabel: String
+        get() = try {
+            val sdf = java.text.SimpleDateFormat("yyyy-MM-dd", java.util.Locale.getDefault())
+            val dateFmt = java.text.SimpleDateFormat("EEE", java.util.Locale.getDefault())
+            val parsed = sdf.parse(date) ?: return date
+            dateFmt.format(parsed)
+        } catch (_: Exception) {
+            date
+        }
 }

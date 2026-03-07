@@ -35,19 +35,20 @@ class SettingsRepository(context: Context) {
     // ──────────────── Weather ────────────────
 
     var weatherLocation: String
-        get() = prefs.getString(KEY_WEATHER_LOCATION, "London") ?: "London"
+        get() = prefs.getString(KEY_WEATHER_LOCATION, "Canberra") ?: "Canberra"
         set(value) = prefs.edit().putString(KEY_WEATHER_LOCATION, value).apply()
 
     var weatherLatitude: Double
-        get() = prefs.getFloat(KEY_WEATHER_LAT, 51.5f).toDouble()
+        get() = prefs.getFloat(KEY_WEATHER_LAT, -35.28f).toDouble()
         set(value) = prefs.edit().putFloat(KEY_WEATHER_LAT, value.toFloat()).apply()
 
     var weatherLongitude: Double
-        get() = prefs.getFloat(KEY_WEATHER_LON, -0.12f).toDouble()
+        get() = prefs.getFloat(KEY_WEATHER_LON, 149.13f).toDouble()
         set(value) = prefs.edit().putFloat(KEY_WEATHER_LON, value.toFloat()).apply()
 
+    /** True once the city name has been geocoded — Canberra is pre-resolved. */
     var weatherLocationResolved: Boolean
-        get() = prefs.getBoolean(KEY_WEATHER_RESOLVED, false)
+        get() = prefs.getBoolean(KEY_WEATHER_RESOLVED, true)
         set(value) = prefs.edit().putBoolean(KEY_WEATHER_RESOLVED, value).apply()
 
     // ──────────────── Kiosk / security ────────────────

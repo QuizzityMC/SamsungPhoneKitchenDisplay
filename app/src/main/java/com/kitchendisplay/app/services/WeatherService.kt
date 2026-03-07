@@ -2,6 +2,7 @@ package com.kitchendisplay.app.services
 
 import com.google.gson.Gson
 import com.google.gson.JsonObject
+import com.kitchendisplay.app.models.DailyForecast
 import com.kitchendisplay.app.models.WeatherData
 import okhttp3.OkHttpClient
 import okhttp3.Request
@@ -40,28 +41,67 @@ class WeatherService {
     }
 
     /**
-     * Fetches current weather for the given coordinates.
-     * Returns null if the request fails.
+     * Fetches current weather **and** a 7-day daily forecast for the given
+     * coordinates.  Returns null if the request fails.
      */
     fun fetchWeather(lat: Double, lon: Double, locationName: String): WeatherData? {
         val url = "https://api.open-meteo.com/v1/forecast" +
                 "?latitude=$lat&longitude=$lon" +
                 "&current_weather=true" +
-                "&timezone=auto"
+                "&daily=weathercode,temperature_2m_max,temperature_2m_min" +
+                ",precipitation_sum,windspeed_10m_max" +
+                "&timezone=auto" +
+                "&forecast_days=7"
         val request = Request.Builder().url(url).build()
         return try {
             val response = client.newCall(request).execute()
             val body = response.body?.string() ?: return null
             val json = gson.fromJson(body, JsonObject::class.java)
+
+            // Current conditions
             val cw = json.getAsJsonObject("current_weather") ?: return null
+            val currentTemp = cw.get("temperature").asDouble
+            val weatherCode = cw.get("weathercode").asInt
+            val windSpeed = cw.get("windspeed").asDouble
+
+            // Daily forecast
+            val daily = json.getAsJsonObject("daily")
+            val forecast = parseDailyForecast(daily)
+
             WeatherData(
-                temperatureCelsius = cw.get("temperature").asDouble,
-                weatherCode = cw.get("weathercode").asInt,
-                windSpeedKmh = cw.get("windspeed").asDouble,
-                location = locationName
+                temperatureCelsius = currentTemp,
+                weatherCode = weatherCode,
+                windSpeedKmh = windSpeed,
+                location = locationName,
+                forecast = forecast
             )
         } catch (e: IOException) {
             null
+        }
+    }
+
+    private fun parseDailyForecast(daily: JsonObject?): List<DailyForecast> {
+        if (daily == null) return emptyList()
+        return try {
+            val dates = daily.getAsJsonArray("time") ?: return emptyList()
+            val codes = daily.getAsJsonArray("weathercode")
+            val maxTemps = daily.getAsJsonArray("temperature_2m_max")
+            val minTemps = daily.getAsJsonArray("temperature_2m_min")
+            val precip = daily.getAsJsonArray("precipitation_sum")
+            val wind = daily.getAsJsonArray("windspeed_10m_max")
+
+            dates.indices.map { i ->
+                DailyForecast(
+                    date = dates[i].asString,
+                    weatherCode = codes?.get(i)?.asInt ?: 0,
+                    maxTempCelsius = maxTemps?.get(i)?.asDouble ?: 0.0,
+                    minTempCelsius = minTemps?.get(i)?.asDouble ?: 0.0,
+                    precipitationMm = precip?.get(i)?.asDouble ?: 0.0,
+                    maxWindSpeedKmh = wind?.get(i)?.asDouble ?: 0.0
+                )
+            }
+        } catch (_: Exception) {
+            emptyList()
         }
     }
 }
