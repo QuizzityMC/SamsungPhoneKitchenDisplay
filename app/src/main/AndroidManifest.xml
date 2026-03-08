@@ -9,9 +9,9 @@
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
     <!-- Audio recording for voice messages -->
     <uses-permission android:name="android.permission.RECORD_AUDIO" />
-    <!-- Microphone is used for voice messages but the app installs fine without one -->
+    <!-- Microphone is used for voice messages but must not block install on mic-less devices -->
     <uses-feature android:name="android.hardware.microphone" android:required="false" />
-    <!-- Read/write audio files -->
+    <!-- Read/write audio files for voice message playback -->
     <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
     <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE"
         android:maxSdkVersion="28" />
@@ -21,10 +21,6 @@
     <!-- Alarm sound volume control for clock timer -->
     <uses-permission android:name="android.permission.MODIFY_AUDIO_SETTINGS" />
     <uses-permission android:name="android.permission.VIBRATE" />
-    <!-- System alert window for overlay (optional enhanced kiosk) -->
-    <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />
-    <!-- Device admin for full lock-task / kiosk support -->
-    <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />
 
     <application
         android:allowBackup="false"
@@ -51,10 +47,6 @@
                 <category android:name="android.intent.category.LAUNCHER" />
                 <category android:name="android.intent.category.HOME" />
                 <category android:name="android.intent.category.DEFAULT" />
-            </intent-filter>
-            <!-- Launch from boot -->
-            <intent-filter>
-                <action android:name="android.intent.action.BOOT_COMPLETED" />
             </intent-filter>
         </activity>
 
