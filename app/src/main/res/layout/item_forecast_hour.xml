@@ -1,0 +1,86 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="horizontal"
+    android:gravity="center_vertical"
+    android:padding="8dp"
+    android:background="@color/surface">
+
+    <!-- Hour label e.g. "14:00" -->
+    <TextView
+        android:id="@+id/tv_hour"
+        android:layout_width="52dp"
+        android:layout_height="wrap_content"
+        android:textColor="@color/accent"
+        android:textSize="15sp"
+        android:textStyle="bold"
+        android:fontFamily="monospace" />
+
+    <!-- Weather icon -->
+    <TextView
+        android:id="@+id/tv_hour_icon"
+        android:layout_width="36dp"
+        android:layout_height="wrap_content"
+        android:textSize="20sp"
+        android:gravity="center" />
+
+    <!-- Temperature -->
+    <TextView
+        android:id="@+id/tv_hour_temp"
+        android:layout_width="72dp"
+        android:layout_height="wrap_content"
+        android:textColor="@color/clock_color"
+        android:textSize="15sp"
+        android:textStyle="bold"
+        android:fontFamily="monospace" />
+
+    <!-- Feels like -->
+    <TextView
+        android:id="@+id/tv_hour_feels"
+        android:layout_width="72dp"
+        android:layout_height="wrap_content"
+        android:textColor="@color/text_secondary"
+        android:textSize="13sp" />
+
+    <!-- Rain mm -->
+    <TextView
+        android:id="@+id/tv_hour_rain"
+        android:layout_width="56dp"
+        android:layout_height="wrap_content"
+        android:textColor="@color/text_secondary"
+        android:textSize="13sp"
+        android:gravity="end" />
+
+    <!-- Humidity -->
+    <TextView
+        android:id="@+id/tv_hour_humidity"
+        android:layout_width="48dp"
+        android:layout_height="wrap_content"
+        android:textColor="@color/text_secondary"
+        android:textSize="13sp"
+        android:gravity="end" />
+
+    <!-- Wind speed -->
+    <TextView
+        android:id="@+id/tv_hour_wind"
+        android:layout_width="72dp"
+        android:layout_height="wrap_content"
+        android:textColor="@color/text_secondary"
+        android:textSize="13sp"
+        android:gravity="end" />
+
+    <!-- Description -->
+    <TextView
+        android:id="@+id/tv_hour_desc"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_weight="1"
+        android:textColor="@color/text_secondary"
+        android:textSize="13sp"
+        android:gravity="end"
+        android:maxLines="1"
+        android:ellipsize="end" />
+
+</LinearLayout>

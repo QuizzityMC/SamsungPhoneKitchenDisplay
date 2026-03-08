@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="horizontal"
+    android:gravity="center_vertical"
+    android:padding="10dp"
+    android:background="@color/surface">
+
+    <!-- Day label -->
+    <TextView
+        android:id="@+id/tv_day"
+        android:layout_width="48dp"
+        android:layout_height="wrap_content"
+        android:textColor="@color/accent"
+        android:textSize="16sp"
+        android:textStyle="bold" />
+
+    <!-- Weather icon -->
+    <TextView
+        android:id="@+id/tv_icon"
+        android:layout_width="40dp"
+        android:layout_height="wrap_content"
+        android:textSize="24sp"
+        android:gravity="center" />
+
+    <!-- Max / Min temp -->
+    <TextView
+        android:id="@+id/tv_temps"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_weight="1"
+        android:textColor="@color/text_primary"
+        android:textSize="16sp"
+        android:fontFamily="monospace" />
+
+    <!-- Rain -->
+    <TextView
+        android:id="@+id/tv_rain"
+        android:layout_width="60dp"
+        android:layout_height="wrap_content"
+        android:textColor="@color/text_secondary"
+        android:textSize="13sp"
+        android:gravity="end" />
+
+    <!-- Description -->
+    <TextView
+        android:id="@+id/tv_desc"
+        android:layout_width="120dp"
+        android:layout_height="wrap_content"
+        android:textColor="@color/text_secondary"
+        android:textSize="13sp"
+        android:gravity="end"
+        android:maxLines="1"
+        android:ellipsize="end" />
+
+</LinearLayout>

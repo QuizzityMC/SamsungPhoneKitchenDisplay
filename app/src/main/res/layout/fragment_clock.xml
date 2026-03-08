@@ -1,0 +1,288 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/background"
+    android:orientation="horizontal">
+
+    <!-- Left: Clock + date (40% of screen) -->
+    <LinearLayout
+        android:layout_width="0dp"
+        android:layout_height="match_parent"
+        android:layout_weight="2"
+        android:orientation="vertical"
+        android:gravity="center"
+        android:padding="16dp">
+
+        <TextView
+            android:id="@+id/tv_clock_large"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="00:00:00"
+            android:textColor="@color/clock_color"
+            android:textSize="72sp"
+            android:textStyle="bold"
+            android:fontFamily="monospace" />
+
+        <TextView
+            android:id="@+id/tv_date_large"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:textColor="@color/text_secondary"
+            android:textSize="18sp"
+            android:layout_marginTop="8dp" />
+
+    </LinearLayout>
+
+    <!-- Divider -->
+    <View
+        android:layout_width="1dp"
+        android:layout_height="match_parent"
+        android:background="@color/divider" />
+
+    <!-- Right: Timer / Stopwatch (60% of screen) -->
+    <LinearLayout
+        android:layout_width="0dp"
+        android:layout_height="match_parent"
+        android:layout_weight="3"
+        android:orientation="vertical"
+        android:padding="16dp">
+
+        <!-- Mode selector -->
+        <RadioGroup
+            android:id="@+id/rg_clock_mode"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:layout_marginBottom="16dp">
+
+            <RadioButton
+                android:id="@+id/rb_timer"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/timer"
+                android:textColor="@color/text_primary"
+                android:textSize="18sp"
+                android:checked="true" />
+
+            <RadioButton
+                android:id="@+id/rb_stopwatch"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/stopwatch"
+                android:textColor="@color/text_primary"
+                android:textSize="18sp"
+                android:layout_marginStart="32dp" />
+
+        </RadioGroup>
+
+        <!-- ── TIMER panel ── -->
+        <LinearLayout
+            android:id="@+id/panel_timer"
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_weight="1"
+            android:orientation="vertical"
+            android:gravity="center_vertical">
+
+            <!-- Input row: HH:MM:SS -->
+            <LinearLayout
+                android:id="@+id/ll_timer_input"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:gravity="center_vertical"
+                android:layout_gravity="center_horizontal">
+
+                <EditText
+                    android:id="@+id/et_timer_hours"
+                    android:layout_width="64dp"
+                    android:layout_height="wrap_content"
+                    android:hint="0"
+                    android:inputType="number"
+                    android:textSize="28sp"
+                    android:textColor="@color/text_primary"
+                    android:background="@color/input_background"
+                    android:padding="8dp"
+                    android:gravity="center"
+                    android:fontFamily="monospace"
+                    android:maxLength="2" />
+
+                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                    android:text="h" android:textColor="@color/text_secondary" android:textSize="20sp"
+                    android:layout_marginHorizontal="4dp" />
+
+                <EditText
+                    android:id="@+id/et_timer_minutes"
+                    android:layout_width="64dp"
+                    android:layout_height="wrap_content"
+                    android:hint="0"
+                    android:inputType="number"
+                    android:textSize="28sp"
+                    android:textColor="@color/text_primary"
+                    android:background="@color/input_background"
+                    android:padding="8dp"
+                    android:gravity="center"
+                    android:fontFamily="monospace"
+                    android:maxLength="2" />
+
+                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                    android:text="m" android:textColor="@color/text_secondary" android:textSize="20sp"
+                    android:layout_marginHorizontal="4dp" />
+
+                <EditText
+                    android:id="@+id/et_timer_seconds"
+                    android:layout_width="64dp"
+                    android:layout_height="wrap_content"
+                    android:hint="0"
+                    android:inputType="number"
+                    android:textSize="28sp"
+                    android:textColor="@color/text_primary"
+                    android:background="@color/input_background"
+                    android:padding="8dp"
+                    android:gravity="center"
+                    android:fontFamily="monospace"
+                    android:maxLength="2" />
+
+                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                    android:text="s" android:textColor="@color/text_secondary" android:textSize="20sp"
+                    android:layout_marginStart="4dp" />
+
+            </LinearLayout>
+
+            <!-- Countdown display -->
+            <TextView
+                android:id="@+id/tv_timer_display"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="00:00:00"
+                android:textColor="@color/clock_color"
+                android:textSize="56sp"
+                android:textStyle="bold"
+                android:fontFamily="monospace"
+                android:layout_gravity="center_horizontal"
+                android:layout_marginTop="8dp"
+                android:visibility="gone" />
+
+            <!-- Timer status label (shown when alarm fires) -->
+            <TextView
+                android:id="@+id/tv_timer_status"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text=""
+                android:textColor="@color/recording_red"
+                android:textSize="22sp"
+                android:textStyle="bold"
+                android:layout_gravity="center_horizontal"
+                android:layout_marginTop="4dp" />
+
+            <!-- Timer control buttons -->
+            <LinearLayout
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:layout_gravity="center_horizontal"
+                android:layout_marginTop="12dp">
+
+                <Button
+                    android:id="@+id/btn_timer_start"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="@string/start"
+                    android:textSize="16sp" />
+
+                <Button
+                    android:id="@+id/btn_timer_reset"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="@string/reset"
+                    android:textSize="16sp"
+                    android:layout_marginStart="12dp" />
+
+                <Button
+                    android:id="@+id/btn_timer_stop_alarm"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="@string/stop_alarm"
+                    android:textSize="16sp"
+                    android:backgroundTint="@color/recording_red"
+                    android:layout_marginStart="12dp"
+                    android:visibility="gone" />
+
+            </LinearLayout>
+
+        </LinearLayout>
+
+        <!-- ── STOPWATCH panel ── -->
+        <LinearLayout
+            android:id="@+id/panel_stopwatch"
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_weight="1"
+            android:orientation="vertical"
+            android:gravity="center_vertical"
+            android:visibility="gone">
+
+            <TextView
+                android:id="@+id/tv_stopwatch_display"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="00:00.0"
+                android:textColor="@color/clock_color"
+                android:textSize="64sp"
+                android:textStyle="bold"
+                android:fontFamily="monospace"
+                android:layout_gravity="center_horizontal" />
+
+            <LinearLayout
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:layout_gravity="center_horizontal"
+                android:layout_marginTop="16dp">
+
+                <Button
+                    android:id="@+id/btn_sw_start_stop"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="@string/start"
+                    android:textSize="16sp" />
+
+                <Button
+                    android:id="@+id/btn_sw_lap"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="@string/lap"
+                    android:textSize="16sp"
+                    android:layout_marginStart="12dp" />
+
+                <Button
+                    android:id="@+id/btn_sw_reset"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="@string/reset"
+                    android:textSize="16sp"
+                    android:layout_marginStart="12dp" />
+
+            </LinearLayout>
+
+            <ScrollView
+                android:layout_width="match_parent"
+                android:layout_height="0dp"
+                android:layout_weight="1"
+                android:layout_marginTop="8dp">
+
+                <LinearLayout
+                    android:id="@+id/ll_laps"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical" />
+
+            </ScrollView>
+
+        </LinearLayout>
+
+    </LinearLayout>
+
+</LinearLayout>
