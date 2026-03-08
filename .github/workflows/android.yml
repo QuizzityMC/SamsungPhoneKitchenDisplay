@@ -5,6 +5,8 @@ on:
     branches: [ "main", "copilot/**" ]
   pull_request:
     branches: [ "main" ]
+  # Allows the repo owner to trigger a build manually from the Actions tab
+  workflow_dispatch:
 
 jobs:
   build:
